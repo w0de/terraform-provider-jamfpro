@@ -3,10 +3,11 @@ package macosconfigurationprofiles
 import (
 	"encoding/xml"
 	"fmt"
-	"html"
 	"log"
 
 	"github.com/deploymenttheory/go-api-sdk-jamfpro/sdk/jamfpro"
+	"github.com/deploymenttheory/terraform-provider-jamfpro/internal/endpoints/common/sharedschemas"
+	"howett.net/plist"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -56,13 +57,44 @@ func constructJamfProMacOSConfigurationProfile(d *schema.ResourceData) (*jamfpro
 		}
 	}
 
-	// Payload
-	payload, ok := d.GetOk("payload")
-	if ok {
-		payload = html.EscapeString(payload.(string))
-		out.General.Payloads = payload.(string)
-	} else {
+	// Payloads
+	payloads, ok := d.GetOk("payloads")
+
+	if !ok {
 		return nil, fmt.Errorf("an error occurred setting the payload")
+	}
+
+	listOfPayloads := payloads.([]string)
+
+	var payloadContent []interface{}
+	for _, p := range listOfPayloads {
+		payload, err := plist.MarshalIndent(p, plist.XMLFormat, "  ")
+		if err != nil {
+			return nil, fmt.Errorf("an error occurred setting the payload")
+		} else {
+			var content map[string]interface{}
+			_, err = plist.Unmarshal(payload, &content)
+			payloadContent = append(payloadContent, content)
+		}
+	}
+
+	profileWithPayloads := &sharedschemas.Payloads{
+		PayloadDisplayName:  d.Get("display_name").(string),
+		PayloadDescription:  d.Get("description").(string),
+		PayloadEnabled:      true,
+		PayloadOrganization: d.Get("organization").(string),
+		PayloadVersion:      1,
+		PayloadType:         "Configuration",
+		PayloadScope:        d.Get("level").(string),
+		PayloadUUID:         d.Get("uuid").(string),
+		PayloadIdentifier:   d.Get("identifier").(string),
+		PayloadContent:      payloadContent,
+	}
+
+	if profile, err := plist.MarshalIndent(profileWithPayloads, plist.XMLFormat, "  "); err != nil {
+		return nil, fmt.Errorf("an error occurred setting the payload")
+	} else {
+		out.General.Payloads = string(profile)
 	}
 
 	// Scope
