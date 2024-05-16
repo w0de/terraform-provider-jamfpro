@@ -80,13 +80,18 @@ func constructJamfProMacOSConfigurationProfile(d *schema.ResourceData) (*jamfpro
 	profile := utils.ConfigurationProfile{
 		PayloadContent: payloadContent,
 		PayloadType:    "Configuration",
+		// PayloadIdentifier: nil,
+		// PayloadDisplayName: nil,
 		PayloadVersion: 1,
 	}
 
-	if xmlProfile, err := plist.MarshalIndent(profile, plist.XMLFormat, "    "); err != nil {
+	if plist, err := plist.MarshalIndent(profile, plist.XMLFormat, "\t"); err != nil {
 		return nil, err
 	} else {
-		out.General.Payloads = string(xmlProfile)
+		if e := d.Set("plist", string(plist)); e != nil {
+			return nil, e
+		}
+		out.General.Payloads = string(plist)
 	}
 
 	// Scope

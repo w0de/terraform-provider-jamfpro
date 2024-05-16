@@ -4,12 +4,14 @@ package state
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/go-api-sdk-jamfpro/tools/utils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mitchellh/mapstructure"
 	"howett.net/plist"
 )
 
@@ -30,9 +32,32 @@ func HandleResourceNotFoundError(err error, d *schema.ResourceData) diag.Diagnos
 	}
 }
 
+// Struct to mirror MacOS .plist conifguration profile data with bucket for unexpected values
+type ConfigurationProfile struct {
+	PayloadContent     []PayloadContentListItem
+	PayloadDisplayName string
+	PayloadIdentifier  string
+	PayloadType        string
+	PayloadUUID        string
+	PayloadVersion     int
+	UnexpectedValues   map[string]interface{} `mapstructure:",remain"`
+}
+
+// Struct to mirror xml payload item with key for all dynamic values
+type PayloadContentListItem struct {
+	// PayloadVersion        int
+	// PayloadType           string
+	PayloadDisplayName  string
+	PayloadOrganization string
+	PayloadIdentifier   string
+	PayloadUUID         string
+	PayloadEnabled      bool
+	NonComputedValues   map[string]interface{} `mapstructure:",remain"`
+}
+
 // plistDataToStruct takes xml .plist bytes data and returns ConfigurationProfile
-func StructToPayloadData(payload utils.PayloadContentListItem) (string, error) {
-	plistData, err := plist.MarshalIndent(payload, plist.XMLFormat, "    ")
+func StructToPayloadData(payload PayloadContentListItem) (string, error) {
+	plistData, err := plist.MarshalIndent(payload.NonComputedValues, plist.XMLFormat, "\t")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal payload: %v", err)
 	}
@@ -40,25 +65,72 @@ func StructToPayloadData(payload utils.PayloadContentListItem) (string, error) {
 	return string(plistData), nil
 }
 
-func UpdateConfigurationProfilePayloads(d *schema.ResourceData, plistData string) error {
-	profile, err := utils.ConfigurationProfilePlistToStructFromString(plistData)
+func ConfigurationFilePlistToStructFromFile(filepath string) (*ConfigurationProfile, error) {
+	plistFile, err := os.Open(filepath)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to open file: %v", err)
+	}
+	defer plistFile.Close()
+
+	xmlData, err := io.ReadAll(plistFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read plist/xml file: %v", err)
+	}
+
+	return plistDataToStruct(xmlData)
+}
+
+func ConfigurationProfilePlistToStructFromString(plistData string) (*ConfigurationProfile, error) {
+	return plistDataToStruct([]byte(plistData))
+}
+
+func plistDataToStruct(plistBytes []byte) (*ConfigurationProfile, error) {
+	var unmarshalledPlist map[string]interface{}
+	_, err := plist.Unmarshal(plistBytes, &unmarshalledPlist)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal plist/xml: %v", err)
+	}
+
+	var out ConfigurationProfile
+	err = mapstructure.Decode(unmarshalledPlist, &out)
+	if err != nil {
+		return nil, fmt.Errorf("(mapstructure) failed to map unmarshaled configuration profile to struct: %v", err)
+	}
+
+	return &out, nil
+}
+
+func UnmarshalProfileAndPayloads(plistData string) (*ConfigurationProfile, []string, error) {
+	profile, err := ConfigurationProfilePlistToStructFromString(plistData)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	payloads := make([]string, len(profile.PayloadContent))
 	for i, v := range profile.PayloadContent {
-		payload, err := StructToPayloadData(v)
-		if err != nil {
-			return err
+		if payload, err := StructToPayloadData(v); err != nil {
+			return nil, nil, err
+		} else {
+			payloads[i] = payload
 		}
-
-		payloads[i] = payload
 	}
 
 	sort.Strings(payloads)
 
+	return profile, payloads, nil
+}
+
+func UpdateConfigurationProfilePayloads(d *schema.ResourceData, plistData string) error {
+	profile, payloads, err := UnmarshalProfileAndPayloads(plistData)
+	if err != nil {
+		return err
+	}
+
 	if err := d.Set("payloads", payloads); err != nil {
+		return err
+	}
+
+	if err := d.Set("plist", plistData); err != nil {
 		return err
 	}
 
@@ -78,9 +150,9 @@ func UpdateConfigurationProfilePayloads(d *schema.ResourceData, plistData string
 }
 
 // func ConstructConfigurationProfile(d *schema.ResourceData, rawPayloads []string) error {
-// 	payloads := make([]utils.PayloadContentListItem, 0, 100)
+// 	payloads := make([]PayloadContentListItem, 0, 100)
 // 	for _, val := range rawPayloads {
-// 		profile, err := utils.ConfigurationProfilePlistToStructFromString(val)
+// 		profile, err := ConfigurationProfilePlistToStructFromString(val)
 // 		if err != nil {
 // 			return err
 // 		}

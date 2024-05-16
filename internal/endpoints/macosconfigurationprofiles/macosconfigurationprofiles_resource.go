@@ -98,6 +98,11 @@ func ResourceJamfProMacOSConfigurationProfiles() *schema.Resource {
 				Computed:    true,
 				Description: "The PayloadIdentifier of the configuration profile.",
 			},
+			"plist": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The computed plist of the configuration profile.",
+			},
 			"payloads": {
 				Type:        schema.TypeList,
 				Required:    true,
