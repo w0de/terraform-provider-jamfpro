@@ -91,13 +91,29 @@ func ResourceJamfProMacOSConfigurationProfiles() *schema.Resource {
 			"uuid": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The UUID of the configuration profile.",
+				Description: "The PayloadUUID of the configuration profile.",
 			},
-			"payload": {
+			"identifier": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "A MacOS configuration profile xml file as a file",
+				Computed:    true,
+				Description: "The PayloadIdentifier of the configuration profile.",
 			},
+			"payloads": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "A set of configuration profile payloads.",
+				Elem:        sharedschemas.GetSharedSchemaPayload(),
+			},
+			"display_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The PayloadDisplayName of the configuration profile.",
+			},
+			// "organization": {
+			// 	Type:        schema.TypeString,
+			// 	Computed:    true,
+			// 	Description: "The PayloadOrganization of the configuration profile.",
+			// },
 			"redeploy_on_update": {
 				Type:         schema.TypeString,
 				Optional:     true,

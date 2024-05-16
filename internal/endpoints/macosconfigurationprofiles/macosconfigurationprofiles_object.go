@@ -3,12 +3,12 @@ package macosconfigurationprofiles
 import (
 	"encoding/xml"
 	"fmt"
-	"html"
 	"log"
 
 	"github.com/deploymenttheory/go-api-sdk-jamfpro/sdk/jamfpro"
-
+	"github.com/deploymenttheory/go-api-sdk-jamfpro/tools/utils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"howett.net/plist"
 )
 
 // constructJamfProMacOSConfigurationProfile constructs a ResourceMacOSConfigurationProfile object from the provided schema data.
@@ -57,12 +57,36 @@ func constructJamfProMacOSConfigurationProfile(d *schema.ResourceData) (*jamfpro
 	}
 
 	// Payload
-	payload, ok := d.GetOk("payload")
-	if ok {
-		payload = html.EscapeString(payload.(string))
-		out.General.Payloads = payload.(string)
-	} else {
+
+	// if err := state.UpdateConfigurationProfilePayloads(d, payloads.([]string)); err != nil {
+	// 	return nil, err
+	// }
+
+	payloads, ok := d.GetOk("payloads")
+	if !ok {
 		return nil, fmt.Errorf("an error occurred setting the payload")
+	}
+	payloadContent := make([]utils.PayloadContentListItem, len(payloads.([]string)))
+	for _, val := range payloads.([]string) {
+		payloadProfile, err := utils.ConfigurationProfilePlistToStructFromString(val)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range payloadProfile.PayloadContent {
+			payloadContent = append(payloadContent, v)
+		}
+	}
+
+	profile := utils.ConfigurationProfile{
+		PayloadContent: payloadContent,
+		PayloadType:    "Configuration",
+		PayloadVersion: 1,
+	}
+
+	if xmlProfile, err := plist.MarshalIndent(profile, plist.XMLFormat, "    "); err != nil {
+		return nil, err
+	} else {
+		out.General.Payloads = string(xmlProfile)
 	}
 
 	// Scope
