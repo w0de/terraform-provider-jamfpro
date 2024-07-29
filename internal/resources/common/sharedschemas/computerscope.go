@@ -4,6 +4,7 @@ import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 func GetSharedmacOSComputerSchemaScope() *schema.Resource {
 	scope := &schema.Resource{
+		CustomizeDiff: DiffSuppressScopeIDs,
 		Schema: map[string]*schema.Schema{
 			"all_computers": {
 				Type:        schema.TypeBool,
@@ -70,6 +71,7 @@ func GetSharedmacOSComputerSchemaScope() *schema.Resource {
 				MaxItems:    1,
 				Description: "The scope limitations from the macOS configuration profile.",
 				Elem: &schema.Resource{
+					CustomizeDiff: DiffSuppressScopeIDs,
 					Schema: map[string]*schema.Schema{
 						"network_segment_ids": {
 							Type:        schema.TypeList,
@@ -105,6 +107,7 @@ func GetSharedmacOSComputerSchemaScope() *schema.Resource {
 				Optional:    true,
 				Default:     nil,
 				Elem: &schema.Resource{
+					CustomizeDiff: DiffSuppressScopeIDs,
 					Schema: map[string]*schema.Schema{
 						"computer_ids": {
 							Type:        schema.TypeList,

@@ -4,6 +4,7 @@ import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 func GetSharedMobileDeviceSchemaScope() *schema.Resource {
 	scope := &schema.Resource{
+		CustomizeDiff: DiffSuppressScopeIDs,
 		Schema: map[string]*schema.Schema{
 			"all_mobile_devices": {
 				Type:        schema.TypeBool,
@@ -57,6 +58,7 @@ func GetSharedMobileDeviceSchemaScope() *schema.Resource {
 				MaxItems:    1,
 				Description: "The scope limitations from the mobile device configuration profile.",
 				Elem: &schema.Resource{
+					CustomizeDiff: DiffSuppressScopeIDs,
 					Schema: map[string]*schema.Schema{
 						"network_segment_ids": {
 							Type:        schema.TypeList,
@@ -91,6 +93,7 @@ func GetSharedMobileDeviceSchemaScope() *schema.Resource {
 				MaxItems:    1,
 				Description: "The scope exclusions from the mobile device configuration profile.",
 				Elem: &schema.Resource{
+					CustomizeDiff: DiffSuppressScopeIDs,
 					Schema: map[string]*schema.Schema{
 						"mobile_device_ids": {
 							Type:        schema.TypeList,
