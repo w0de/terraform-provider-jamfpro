@@ -17,6 +17,11 @@ import (
 func constructJamfProMacOSConfigurationProfilePlist(d *schema.ResourceData) (*jamfpro.ResourceMacOSConfigurationProfile, error) {
 	var resource *jamfpro.ResourceMacOSConfigurationProfile
 
+	serializedPayloads := html.EscapeString(
+		strings.ReplaceAll(strings.ReplaceAll(d.Get("payloads").(string), "\n", ""), "\t", ""),
+	)
+
+	log.Printf("foobar: bazbar: %v", serializedPayloads)
 	resource = &jamfpro.ResourceMacOSConfigurationProfile{
 		General: jamfpro.MacOSConfigurationProfileSubsetGeneral{
 			Name:               d.Get("name").(string),
@@ -26,9 +31,7 @@ func constructJamfProMacOSConfigurationProfilePlist(d *schema.ResourceData) (*ja
 			Level:              d.Get("level").(string),
 			UUID:               d.Get("uuid").(string),
 			RedeployOnUpdate:   d.Get("redeploy_on_update").(string),
-			Payloads: html.EscapeString(
-				strings.ReplaceAll(strings.ReplaceAll(d.Get("payloads").(string), "\n", ""), "\t", ""),
-			),
+			Payloads:           serializedPayloads,
 		},
 	}
 
