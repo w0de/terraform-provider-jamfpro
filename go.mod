@@ -2,6 +2,8 @@ module github.com/deploymenttheory/terraform-provider-jamfpro
 
 go 1.22.4
 
+replace github.com/deploymenttheory/go-api-sdk-jamfpro => github.com/w0de/go-api-sdk-jamfpro v1.8.4
+
 // Direct
 
 // Deploymenttheory
