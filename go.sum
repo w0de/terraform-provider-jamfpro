@@ -80,8 +80,6 @@ github.com/deploymenttheory/go-api-http-client v0.2.8 h1:1J+BycLkiq3zDM+Fg0YGCke
 github.com/deploymenttheory/go-api-http-client v0.2.8/go.mod h1:IAuMavznzbKFKQmMXg9t55uJmFjW5T0tgbv06Rd8YRs=
 github.com/deploymenttheory/go-api-http-client-integrations v0.0.8 h1:Mjr36SIuVC1MRu0MGjmrGSW37TI3QpYkFpXtBFzGTzo=
 github.com/deploymenttheory/go-api-http-client-integrations v0.0.8/go.mod h1:m9XNzP2pNsw8eg+Bdqjrnmn/QK1vrGsDDboabc//IdQ=
-github.com/deploymenttheory/go-api-sdk-jamfpro v1.8.3 h1:AaUkZESOAkctpdECv3WpHcBjVqyePxYOPq96EczMb1Q=
-github.com/deploymenttheory/go-api-sdk-jamfpro v1.8.3/go.mod h1:RUh62QKncfL5GZAW3KBcng5YTeu2cBEdnkcQwrufAuA=
 github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=
 github.com/emirpasic/gods v1.18.1/go.mod h1:8tpGGwCnJ5H4r6BWwaV6OrWmMoPhUl5jm/FMNAnJvWQ=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
@@ -241,6 +239,8 @@ github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IU
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
+github.com/w0de/go-api-sdk-jamfpro v1.8.4 h1:3/lWqKFxnR4K4vCN9CgzerLGQlicxyLhTZ0Oox3vDac=
+github.com/w0de/go-api-sdk-jamfpro v1.8.4/go.mod h1:RUh62QKncfL5GZAW3KBcng5YTeu2cBEdnkcQwrufAuA=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
