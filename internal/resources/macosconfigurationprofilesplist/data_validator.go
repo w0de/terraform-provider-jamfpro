@@ -37,92 +37,90 @@ func mainCustomDiffFunc(ctx context.Context, diff *schema.ResourceDiff, i interf
 }
 
 func suppressScopeOrderingDiffs(ctx context.Context, diff *schema.ResourceDiff, i interface{}) error {
-	if diff.HasChange("scope") {
-		new, old := diff.GetChange("scope")
-		new, err := suppressIDOrderDiffs(ctx, "scope", new, old)
-		if err != nil {
-			return err
+	schemata := [2]string{"scope", "exclusions"}
+	logctx := tflog.NewSubsystem(ctx, "foobar: suppress sorting diffs in ID lists")
+	for _, schema := range schemata {
+		tflog.Info(logctx, fmt.Sprintf("scanning: %s\n", schema))
+		if !diff.HasChange(schema) {
+			tflog.Debug(logctx, fmt.Sprintf("unchanged: %s\n", schema))
+			continue
 		}
 
-		if new != nil {
-			diff.SetNew("scope", new)
-		}
-	}
+		setNew := false
+		oldVal, newVal := diff.GetChange(schema)
+		old := oldVal.([]interface{})[0].(map[string]any)
+		new := newVal.([]interface{})[0].(map[string]any)
 
-	if diff.HasChange("exclusions") {
-		new, old := diff.GetChange("exclusions")
-		new, err := suppressIDOrderDiffs(ctx, "exclusions", new, old)
-		if err != nil {
-			return err
+		for key, val := range old {
+			if !strings.HasSuffix(key, "_ids") {
+				continue
+			}
+
+			tflog.Info(logctx, fmt.Sprintf("scanning: %s.%s\n", schema, key))
+			oldList := val.([]interface{})
+			newList := new[key].([]interface{})
+
+			// Length differs or both empty - order not important
+			if len(oldList) != len(newList) || len(oldList) == 0 {
+				continue
+			}
+
+			tflog.Debug(logctx, fmt.Sprintf("xoobar: (%v, %v) newList:%v, (%v, %v) oldList:%v\n", len(newList), reflect.TypeOf(newList), newList, len(oldList), reflect.TypeOf(oldList), oldList))
+
+			oldIDs, err := convertToIntArray(oldList)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("skipping (old value is not []int): %s.%s", schema, key))
+				continue
+			}
+
+			newIDs, err := convertToIntArray(newList)
+			if err != nil {
+				tflog.Warn(ctx, fmt.Sprintf("skipping (new value is not []int): %s.%s", schema, key))
+				continue
+			}
+
+			sort.Ints(oldIDs)
+			sort.Ints(newIDs)
+
+			// Compare sorted IDs
+			equivalent := true
+			for i, id := range oldIDs {
+				if id != newIDs[i] {
+					equivalent = false
+					break
+				}
+			}
+
+			// If there's no change between sorted versions, rewrite new to old
+			if equivalent {
+				tflog.Debug(logctx, fmt.Sprintf("diff.SetNew: %s.%s - \n%v\n->\n%v\n", schema, key, new[key], val))
+				tflog.Debug(logctx, fmt.Sprintf("xoobar: newIDs: %v, oldIDs:%v\n", newIDs, oldIDs))
+				new[key] = val
+				setNew = true
+			}
 		}
 
-		if new != nil {
-			diff.SetNew("exclusions", new)
+		if setNew {
+			if err := diff.SetNew(schema, new); err != nil {
+				return err
+			}
+			tflog.Info(logctx, fmt.Sprintf("diff.SetNew: %s\n", schema))
 		}
 	}
 
 	return nil
 }
 
-// DiffSuppressScopeIDs suppresses ordering differences in lists of IDs.
-// Due to DiffSuppressFunc limitation w/r/t arrays, invoked as a CustomizeDiff func.
-// Suppresses diffs by setting new value to old value.
-func suppressIDOrderDiffs(ctx context.Context, schema string, newResource interface{}, oldResource interface{}) (any, error) {
-	tflog.Info(ctx, fmt.Sprintf("foobar suppressing ID diffs in %s\n", schema))
-	updated := false
-	new := newResource.([]interface{})[0].(map[string]any)
-	old := oldResource.([]interface{})[0].(map[string]any)
-
-	for key, newIDs := range new {
-		newVal := newIDs.([]int)
-		if !strings.HasSuffix(key, "_ids") {
-			continue
+func convertToIntArray(input []interface{}) ([]int, error) {
+	result := make([]int, len(input))
+	for i, v := range input {
+		num, ok := v.(int)
+		if !ok {
+			return nil, fmt.Errorf("element %d is not an int", i)
 		}
-
-		valType := reflect.ValueOf(newVal)
-		tflog.Info(ctx, fmt.Sprintf("foobar %s: %s, %s\n", schema, key, valType.Kind()))
-
-		oldVal := old[key].([]int)
-		tflog.Info(ctx, fmt.Sprintf("foobar Scanning for erroneous ID array diffs in %s\n", key))
-
-		oldType := reflect.ValueOf(oldVal)
-		newType := reflect.ValueOf(newVal)
-
-		if oldType.Kind() != reflect.Slice || newType.Kind() != reflect.Slice {
-			tflog.Info(ctx, fmt.Sprintf("foobar kinds are wrong for %s\n", key))
-			continue
-		}
-
-		// oldIDs := oldVal.([]interface)
-		// newIDs := newVal.([]interface)
-
-		if len(oldVal) != len(newVal) {
-			tflog.Info(ctx, fmt.Sprintf("foobar len mismatch for %s\n", key))
-			continue
-		}
-
-		sort.Ints(oldVal)
-		sort.Ints(newVal)
-		equivalent := true
-
-		for i, v := range oldVal {
-			if v != newVal[i] {
-				tflog.Info(ctx, fmt.Sprintf("foobar value mismatch for %s\n", key))
-				equivalent = false
-				break
-			}
-		}
-
-		if equivalent {
-			tflog.Info(ctx, fmt.Sprintf("foobar Suppressing ID array diffs in %s\n", key))
-		}
+		result[i] = num
 	}
-
-	if updated {
-		return new, nil
-	}
-
-	return nil, nil
+	return result, nil
 }
 
 // validateDistributionMethod checks that the 'self_service' block is only used when 'distribution_method' is "Make Available in Self Service".
