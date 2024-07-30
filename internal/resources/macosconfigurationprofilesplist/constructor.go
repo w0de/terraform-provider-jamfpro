@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"log"
+	"strings"
 
 	"github.com/deploymenttheory/go-api-sdk-jamfpro/sdk/jamfpro"
 	"github.com/deploymenttheory/terraform-provider-jamfpro/internal/resources/common/sharedschemas"
@@ -25,7 +26,9 @@ func constructJamfProMacOSConfigurationProfilePlist(d *schema.ResourceData) (*ja
 			Level:              d.Get("level").(string),
 			UUID:               d.Get("uuid").(string),
 			RedeployOnUpdate:   d.Get("redeploy_on_update").(string),
-			Payloads:           html.EscapeString(d.Get("payloads").(string)),
+			Payloads: html.EscapeString(
+				strings.ReplaceAll(strings.ReplaceAll(d.Get("payloads").(string), "\n", ""), "\t", ""),
+			),
 		},
 	}
 
