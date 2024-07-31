@@ -52,9 +52,6 @@ func ResourceJamfProComputerExtensionAttributes() *schema.Resource {
 				Optional:    true,
 				Default:     "String",
 				Description: "Data type of the computer extension attribute. Can be String / Integer / Date (YYYY-MM-DD hh:mm:ss). Value defaults to `String`.",
-				StateFunc: func(val any) string {
-					return strings.ToLower(val.(string))
-				},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return strings.ToLower(old) == strings.ToLower(new)
 				},
