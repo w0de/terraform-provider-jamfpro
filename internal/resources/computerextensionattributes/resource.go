@@ -55,6 +55,9 @@ func ResourceJamfProComputerExtensionAttributes() *schema.Resource {
 				StateFunc: func(val any) string {
 					return strings.ToLower(val.(string))
 				},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return strings.ToLower(old) == strings.ToLower(new)
+				},
 				ValidateFunc: validation.StringInSlice([]string{"string", "integer", "date"}, false),
 			},
 			"input_type": {
