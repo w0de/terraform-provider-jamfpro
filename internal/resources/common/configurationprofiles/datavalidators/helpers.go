@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 
+	common "github.com/deploymenttheory/terraform-provider-jamfpro/internal/resources/common/configurationprofiles/plist"
 	"howett.net/plist"
 )
 
@@ -30,6 +31,8 @@ func CheckPlistIndentationAndWhiteSpace(plistStr string) error {
 	}
 
 	// Re-encode the plist to check formatting
+	// FIXME: FormatPlist seems to cause keys to be alphabetically sorted (at least in PayloadContent items).
+	//        This causes erroneous plist content mistmatches (line 59). Operators must manually alphabetize.
 	formatted, err := FormatPlist(plistStr)
 	if err != nil {
 		return fmt.Errorf("error formatting plist: %v", err)
@@ -45,13 +48,16 @@ func CheckPlistIndentationAndWhiteSpace(plistStr string) error {
 
 	if len(origLines) != len(formattedLines) {
 		log.Printf("[DEBUG] Line count mismatch: original has %d lines, formatted has %d lines", len(origLines), len(formattedLines))
-		return fmt.Errorf("plist line count mismatch: source has %d lines, formatted has %d lines, check for trailing lines and whitespace", len(origLines), len(formattedLines))
+		return fmt.Errorf("plist line count mismatch: source has %d lines, formatted has %d lines, check for trailing lines and whitespace. Use `<array>\\n</array>` for empty arrays, not `<array/>`. Same for empty dicts.", len(origLines), len(formattedLines))
 	}
 
 	for i := range origLines {
 		if origLines[i] != formattedLines[i] {
 			log.Printf("[DEBUG] Difference at line %d:\nOriginal: %s\nFormatted: %s\n", i+1, origLines[i], formattedLines[i])
-			return fmt.Errorf("plist is not properly indented at line %d", i+1)
+			if strings.TrimSpace(origLines[i]) == strings.TrimSpace(formattedLines[i]) {
+				return fmt.Errorf("plist is not properly indented or has trailing spaces at line %d. Difference at line %d:\nOriginal: %s\nFormatted: %s", i+1, i+1, origLines[i], formattedLines[i])
+			}
+			return fmt.Errorf("plist content mistmatch at line %d. Try alphabetizing your plist keys (#FIXME). Difference at line %d: Original: %s | Formatted: %s", i+1, i+1, origLines[i], formattedLines[i])
 		}
 	}
 
@@ -60,16 +66,17 @@ func CheckPlistIndentationAndWhiteSpace(plistStr string) error {
 
 // FormatPlist formats the plist structure to a properly indented XML string.
 func FormatPlist(plistStr string) (string, error) {
-	var decoded interface{}
+	var decoded map[string]interface{}
 	_, err := plist.Unmarshal([]byte(plistStr), &decoded)
 	if err != nil {
 		return "", fmt.Errorf("invalid plist: %v", err)
 	}
+	sorted := common.SortPlistKeys(decoded)
 
 	var buf bytes.Buffer
 	encoder := plist.NewEncoder(&buf)
 	encoder.Indent("\t") // Indent with a single tab
-	err = encoder.Encode(decoded)
+	err = encoder.Encode(sorted)
 	if err != nil {
 		return "", err
 	}
